@@ -1,0 +1,9 @@
+{
+  "CONFIRMED": {
+    "orderId": 12435,
+    "restaurantName": "pizza hola",
+    "notificationId": "12345-34433-33333:434343-233",
+    "refr": "test.com",
+    "orderType": "delivery"
+  }
+}
