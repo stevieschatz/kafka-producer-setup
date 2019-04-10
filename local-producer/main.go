@@ -3,31 +3,33 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/confluentinc/confluent-kafka-go/kafka"
+	"io"
+	"io/ioutil"
+	"log"
 	"os"
 	"strings"
 	"time"
-	"io/ioutil"
-)
 
+	"github.com/confluentinc/confluent-kafka-go/kafka"
+)
 
 func main() {
 	println("starting producer...")
 
 	p, err := kafka.NewProducer(&kafka.ConfigMap{"bootstrap.servers": "kafka:9093"})
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
 	var orderPayload []string
 
 	files, err := ioutil.ReadDir("./")
 	if err != nil {
-		fmt.Println(err)
+		log.Fatal(err)
 	}
 
 	for _, file := range files {
-		if(strings.Contains(file.Name(),"order-status")){
+		if strings.Contains(file.Name(), "order-status") {
 			orderPayload = append(orderPayload, file.Name())
 		}
 	}
@@ -51,20 +53,24 @@ func main() {
 	for _, fileName := range orderPayload {
 		jsonFile, err := os.Open(fileName)
 		if err != nil {
-			fmt.Println(err)
+			log.Fatal(err)
 		}
 		defer jsonFile.Close()
-		byteValue, _ := ioutil.ReadAll(jsonFile)
+		byteValue, err := ioutil.ReadAll(jsonFile)
 
-			var result map[string]interface{}
-			json.Unmarshal([]byte(byteValue), &result)
+		if err != nil && err == io.EOF {
+			log.Fatal(err)
+		}
+
+		var result map[string]interface{}
+		json.Unmarshal([]byte(byteValue), &result)
 
 		messages = append(messages, string(byteValue))
 		fmt.Println(result)
 
 	}
 
-	for _ = range time.NewTicker(10 * time.Second).C {
+	for range time.NewTicker(10 * time.Second).C {
 		for _, message := range messages {
 			topic := "orderStatus"
 			p.Produce(&kafka.Message{
@@ -79,4 +85,3 @@ func main() {
 	println("ending producer...")
 
 }
-
